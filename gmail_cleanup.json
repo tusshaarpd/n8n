@@ -1,0 +1,136 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": true,
+        "additionalFields": {
+          "format": "ids",
+          "q": "=from:{{ $json['Enter Gmail ids which you want to delete'] }}"
+        }
+      },
+      "name": "Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        -220,
+        -40
+      ],
+      "typeVersion": 1,
+      "id": "62d1d6ae-9b2a-461b-84a5-0413725afc2c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kennhvMx4kDmx5L2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "delete",
+        "messageId": "={{$json[\"id\"]}}"
+      },
+      "name": "Delete Old Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        120,
+        140
+      ],
+      "typeVersion": 1,
+      "id": "7b7f2c3c-9fc2-4741-aafa-151cafbc644e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kennhvMx4kDmx5L2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 100,
+        "options": {}
+      },
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        -60,
+        -40
+      ],
+      "typeVersion": 1,
+      "id": "591d7611-b32e-47e6-9c62-6f3d82a87856"
+    },
+    {
+      "parameters": {
+        "formTitle": "Gmail Cleaner",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Enter Gmail ids which you want to delete"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -460,
+        -40
+      ],
+      "id": "cfd860ca-fd26-4f8a-aeef-af1ba6522232",
+      "name": "On form submission",
+      "webhookId": "b84548c5-6a5b-4cbd-86ce-ae54d74cdead"
+    }
+  ],
+  "connections": {
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Old Gmail": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Delete Old Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "63d8a0eabddcc8861ee879e7b6bca1ab194f6c0314110f10ad243adf729dca9c"
+  }
+}
