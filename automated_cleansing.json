@@ -1,0 +1,335 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "id": "9d7b34f5-c680-4c7f-8806-083c647269fc",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -240,
+        1120
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "simple": false,
+        "filters": {
+          "receivedAfter": "={{ $json.today}}",
+          "receivedBefore": "={{ $json.tomorrow }}"
+        },
+        "options": {}
+      },
+      "id": "0de928a4-aa82-4bcc-9418-4c66ccc0bcfb",
+      "name": "Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        180,
+        80
+      ],
+      "webhookId": "6fbdcf54-7d41-4fb0-aa17-07edb33cd5d0",
+      "typeVersion": 2.1,
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kennhvMx4kDmx5L2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst today = new Date(now.getFullYear(), now.getMonth(), now.getDate());\nconst tomorrow = new Date(today);\ntomorrow.setDate(today.getDate() + 1);\n\nconst isoDate = (d) => d.toISOString().split('.')[0] + 'Z';\n\nreturn [\n  {\n    json: {\n      today: isoDate(today),\n      tomorrow: isoDate(tomorrow),\n    },\n  },\n];\n"
+      },
+      "id": "3daad314-e335-4e38-81fa-079e08f1ad17",
+      "name": "Date Transformer",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -40,
+        80
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are an AI Chief of Staff for a small business owner. Your job is to review a day’s worth of emails, texts, and calls and produce a concise, structured summary that helps them stay focused and effective.\n\nYou must only surface tasks, people, and opportunities that appear in the message content. Do not invent next steps, leads, or strategy notes.\n\nIf a section has no relevant content, leave it out entirely. It’s better to report nothing than to guess.",
+        "options": {
+          "systemMessage": "=Below is a transcript of today’s messages — including email, text, and call summaries.\n\nAnalyze the content and generate a markdown-formatted **Daily Business Pulse**, using only what appears in the messages. Do not assume, extrapolate, or fabricate any details.\n\nMessages:\n{{ $json.combinedText }}\n\nUse the structure below. Omit any section that has no relevant content.\n\n---\n\n👋 **Here’s what matters from your day**\n\n---\n\n📝 **Open Loops / Pending Follow-Ups**  \n_List any conversations that require a response or action._\n\n---\n\n🚀 **Next Steps You've Committed To**  \n_List anything the user said they would do._\n\n---\n\n🧲 **Leads or Conversations Worth Following Up On**  \n_Only include if the person expressed interest or asked for help._\n\n---\n\n🛑 **Conversations That Aren’t Leading Anywhere**  \n_Include if there are back-and-forths with no progress, spam, or promotional threads._\n\n---\n\n🧠 **Strategy Notes**  \n_Only add notes if there are clear, recurring themes or opportunities based on the content._\n\n---\n\n✅ **Top 3 Tasks for Tomorrow**  \n_If tasks were mentioned and clearly matter, list the top 3. Otherwise, leave this out._"
+        }
+      },
+      "id": "dbaa2213-651c-447d-9761-dd1563b825f7",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        840,
+        320
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "3acbf6bc-7f3a-409b-b816-e9270c22fa5c",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        840,
+        520
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "IJsHcSaTSGIivpDj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "headers.from"
+            },
+            {
+              "fieldToAggregate": "headers.subject"
+            },
+            {
+              "fieldToAggregate": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "490c8c27-7d3c-482f-b682-eb5265f31f8a",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        400,
+        220
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 200,
+        "width": 620,
+        "color": 4
+      },
+      "id": "27b10325-35d7-4b1f-9f9c-1a4082c40d65",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -300,
+        40
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "",
+        "width": 420,
+        "color": 6
+      },
+      "id": "39ffdf41-0b14-4697-9f5c-66975b84171f",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        340,
+        200
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "",
+        "width": 540
+      },
+      "id": "d84940d3-dff1-40bd-b232-c1fc091d5aad",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        800,
+        300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "const cleanMessages = items.map(item => {\n  const from = item.json.header?.from || \"Unknown sender\";\n  const subject = item.json.header?.subject || \"No subject\";\n  const rawBody = item.json.text || \"\"; // fall back to empty string\n  const body = String(rawBody); // ensure it's a string\n\n  const cleaned = body\n    .replace(/<\\/?[^>]+(>|$)/g, \"\")             // Remove HTML\n    .replace(/(Unsubscribe|View in browser)/gi, \"\") // Strip only promo triggers\n    .replace(/\\n{3,}/g, \"\\n\\n\")                 // Collapse excess breaks\n    .trim();                                    // Clean up\n\n  return `📩 **From:** ${from}\\n**Subject:** ${subject}\\n**Preview:**\\n${cleaned}\\n\\n---\\n`;\n});\n\nreturn [{\n  json: {\n    combinedText: cleanMessages.join('\\n')\n  }\n}];"
+      },
+      "id": "c0ad01fe-0f80-4a49-9e26-532858038dda",
+      "name": "Email Cleanup",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        600,
+        220
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const markdown = $input.all().map((item) => item.json.output);\nlet html = markdown.map((md) =>\n  md\n    .replace(/(\\*\\*|__)(.*?)\\1/g, \"<b>$2</b>\")\n    .replace(/(\\*|_)(.*?)\\1/g, \"<i>$2</i>\")\n    .replace(/~~(.*?)~~/g, \"<del>$1</del>\")\n    .replace(/`([^`\\n]+)`/g, \"<code>$1</code>\")\n    .replace(/!\\[([^\\]]+)\\]\\(([^\\)]+)\\)/g, '<img src=\"$2\" alt=\"$1\">')\n    .replace(/\\[([^\\]]+)\\]\\(([^\\)]+)\\)/g, '<a href=\"$2\">$1</a>')\n    .replace(/(\\r\\n|\\n|\\r)/gm, \"<br>\"),\n);\n\nreturn { html };\n"
+      },
+      "id": "68181fa8-566e-46ef-9d07-58fa234e327a",
+      "name": "Format HTML",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1200,
+        320
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "sendTo": "tusharpd8@gmail.com",
+        "subject": "Here's Your Daily Pulse",
+        "message": "={{ $json.html[0] }}",
+        "options": {}
+      },
+      "id": "5ab4ec39-098d-4e96-b4a9-c640251c6ef3",
+      "name": "Send Message",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        1400,
+        480
+      ],
+      "webhookId": "39d8fc4a-0fa4-4a13-a123-2f1373787a79",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kennhvMx4kDmx5L2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        80
+      ],
+      "id": "3804ea87-1b31-42a5-a3c3-4d11a334c88d",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        []
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date Transformer": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Email Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Cleanup": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format HTML": {
+      "main": [
+        [
+          {
+            "node": "Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Date Transformer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63d8a0eabddcc8861ee879e7b6bca1ab194f6c0314110f10ad243adf729dca9c"
+  }
+}
