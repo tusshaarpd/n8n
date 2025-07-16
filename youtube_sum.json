@@ -1,0 +1,203 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "**Summarize YouTube videos**\n\nThis project automates the summarization of YouTube videos, transforming lengthy content into concise, actionable insights. By leveraging AI and workflow automation, it extracts video transcripts, analyzes key points, and generates summaries, saving time for content creators, researchers, and professionals. Perfect for staying informed, conducting research, or repurposing video content efficiently.",
+        "height": 120,
+        "width": 1160,
+        "color": 7
+      },
+      "id": "0b2b07f5-81bd-4bee-9cd8-1a9d1197310e",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        40
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/topaz_sharingan~youtube-transcript-scraper/run-sync-get-dataset-items?token=apify_api_c05yCq",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"startUrls\": [\n    \"{{ $json['Full URL'] }}\"\n  ]\n}",
+        "options": {}
+      },
+      "id": "1541a34d-95f5-43b0-a70e-3276603d5c61",
+      "name": "Request YouTube Transcript",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "transcript",
+              "value": "={{$json[\"transcript\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "85188ffd-825e-41c0-afdc-f2eba2d35177",
+      "name": "Extract Transcript",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Summarize YouTube video's",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full URL"
+            }
+          ]
+        },
+        "options": {
+          "path": "ddd"
+        }
+      },
+      "id": "c159d034-6cdc-4095-9d16-24a33c870951",
+      "name": "YouTube video URL",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        300
+      ],
+      "webhookId": "3dc17600-3020-40b1-be8f-e65ef45269b6"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "6c079504-5fe8-4186-abdb-7ec3a17ce40e",
+      "name": "Summarization Engine",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        560,
+        480
+      ],
+      "typeVersion": 1.1,
+      "credentials": {
+        "openAiApi": {
+          "id": "IJsHcSaTSGIivpDj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chunkingMode": "advanced",
+        "options": {}
+      },
+      "id": "5c870d21-0cd4-40cd-8bb5-94603f09e411",
+      "name": "Summarization of a YouTube script",
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "position": [
+        560,
+        300
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "sendTo": "tusharpd8@gmail.com",
+        "subject": "Hi",
+        "emailType": "text",
+        "message": "kk",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        860,
+        300
+      ],
+      "id": "6f11b6df-124b-4ca1-844e-2d042d039495",
+      "name": "Gmail",
+      "webhookId": "eec4e090-7f29-40ed-89ad-4048b8be9c2a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kennhvMx4kDmx5L2",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Request YouTube Transcript": {
+      "main": [
+        [
+          {
+            "node": "Extract Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Transcript": {
+      "main": [
+        [
+          {
+            "node": "Summarization of a YouTube script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube video URL": {
+      "main": [
+        [
+          {
+            "node": "Request YouTube Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization Engine": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarization of a YouTube script",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization of a YouTube script": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63d8a0eabddcc8861ee879e7b6bca1ab194f6c0314110f10ad243adf729dca9c"
+  }
+}
