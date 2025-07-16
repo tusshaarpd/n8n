@@ -41,7 +41,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "gmailOAuth2": {
-          "id": "kennhvMx4kDmx5L2",
+          "id": "kennh******",
           "name": "Gmail account"
         }
       }
@@ -95,7 +95,7 @@
       "typeVersion": 1.2,
       "credentials": {
         "openAiApi": {
-          "id": "IJsHcSaTSGIivpDj",
+          "id": "IJsHcSa******",
           "name": "OpenAi account"
         }
       }
@@ -215,7 +215,7 @@
       "typeVersion": 2.1,
       "credentials": {
         "gmailOAuth2": {
-          "id": "kennhvMx4kDmx5L2",
+          "id": "kennhv********",
           "name": "Gmail account"
         }
       }
