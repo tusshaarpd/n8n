@@ -20,7 +20,7 @@
       "id": "62d1d6ae-9b2a-461b-84a5-0413725afc2c",
       "credentials": {
         "gmailOAuth2": {
-          "id": "kennhvMx4kDmx5L2",
+          "id": "kennhvMx4******",
           "name": "Gmail account"
         }
       }
@@ -41,7 +41,7 @@
       "id": "7b7f2c3c-9fc2-4741-aafa-151cafbc644e",
       "credentials": {
         "gmailOAuth2": {
-          "id": "kennhvMx4kDmx5L2",
+          "id": "kennhvM******",
           "name": "Gmail account"
         }
       }
