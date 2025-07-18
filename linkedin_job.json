@@ -1,0 +1,414 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "LinkedIn Job Finder",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "City",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Title",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Country",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job_type(Optional)",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Full-Time"
+                  },
+                  {
+                    "option": "Part-Time"
+                  },
+                  {
+                    "option": "Remote"
+                  },
+                  {
+                    "option": "Contract"
+                  },
+                  {
+                    "option": "Internship"
+                  },
+                  {
+                    "option": "Freelance"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "db25ef3f-3047-4f91-bba9-bfc7924e003d",
+      "name": "On form submission1",
+      "type": "n8n-nodes-base.formTrigger",
+      "position": [
+        240,
+        20
+      ],
+      "webhookId": "37d0e84c-0cda-47f8-826d-9ae5b22ba1d5",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_FIREfc-ee4261a85e6043"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"{{ $node['On form submission1'].json['Job Title'] }} jobs in {{ $node['On form submission1'].json['City'] }} {{ $node['On form submission1'].json['Country'] }} site:linkedin.com/jobs\",\n  \"limit\": 20,\n  \"scrapeOptions\": {\n    \"formats\": [\"markdown\", \"extract\"],\n    \"onlyMainContent\": true,\n    \"extract\": {\n      \"schema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"jobs\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"jobTitle\": { \"type\": \"string\" },\n                \"companyName\": { \"type\": \"string\" },\n                \"location\": { \"type\": \"string\" },\n                \"jobSummary\": { \"type\": \"string\" },\n                \"applyLink\": { \"type\": \"string\" },\n                \"companyUrl\": { \"type\": \"string\" },\n                \"jobType\": { \"type\": \"string\" },\n                \"postedDate\": { \"type\": \"string\" },\n                \"salaryRange\": { \"type\": \"string\" }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "95323826-16e7-4804-90f7-26f710bca51c",
+      "name": "Search Jobs with Firecrawl",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        540,
+        20
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "f01bd215-c406-493c-a6e4-2b8ec5686b44",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "leftValue": "={{ $json.success }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1a71512-b71b-4ca4-af7b-37fec1b8c631",
+      "name": "Check Search Success",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        840,
+        20
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a54c2ca2-af87-4334-8803-a5ff2b8139c1",
+      "name": "Split Job Results",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        1140,
+        20
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": false,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "eb682420-fc89-4e01-a491-5a4a3f6bf10f",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "leftValue": "={{ $json.extract?.jobs?.[0]?.jobTitle || $json.markdown }}",
+              "rightValue": "={{ $node['On form submission1'].json['Job Title'] }}"
+            },
+            {
+              "id": "filter-job-type",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "leftValue": "={{ $json.extract?.jobs?.[0]?.jobType || $json.markdown }}",
+              "rightValue": "={{ $node['On form submission1'].json['Job_type'] || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "30746e29-a758-4c8a-9e77-fe7fc42ee2eb",
+      "name": "Filter Relevant Jobs",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        1440,
+        20
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract job data from Firecrawl response\nconst items = [];\n\nfor (const item of $input.all()) {\n  const jobData = item.json;\n  \n  // Try to extract from structured data first, then fall back to markdown parsing\n  let extractedJobs = [];\n  \n  if (jobData.extract && jobData.extract.jobs) {\n    extractedJobs = jobData.extract.jobs;\n  } else if (jobData.markdown) {\n    // Simple markdown parsing for job information\n    const markdown = jobData.markdown;\n    \n    // Try to extract job information from markdown\n    const jobMatch = {\n      jobTitle: markdown.match(/(?:Job Title|Title):\\s*([^\\n]+)/i)?.[1] || \n                markdown.match(/# ([^\\n]+)/)?.[1] || \n                'Job Title Not Found',\n      companyName: markdown.match(/(?:Company|Organization):\\s*([^\\n]+)/i)?.[1] || \n                   markdown.match(/at ([^\\n]+)/i)?.[1] || \n                   'Company Not Found',\n      location: markdown.match(/(?:Location|City):\\s*([^\\n]+)/i)?.[1] || \n                'Location Not Found',\n      jobSummary: markdown.match(/(?:Summary|Description):\\s*([^\\n]+)/i)?.[1] || \n                  markdown.substring(0, 200) + '...',\n      applyLink: jobData.sourceURL || '',\n      companyUrl: jobData.sourceURL || '',\n      jobType: markdown.match(/(?:Job Type|Type):\\s*([^\\n]+)/i)?.[1] || \n               'Not Specified',\n      postedDate: markdown.match(/(?:Posted|Date):\\s*([^\\n]+)/i)?.[1] || \n                  'Not Specified',\n      salaryRange: markdown.match(/(?:Salary|Pay|Range):\\s*([^\\n]+)/i)?.[1] || \n                   'Not Specified'\n    };\n    \n    extractedJobs = [jobMatch];\n  }\n  \n  // Add each job as a separate item\n  extractedJobs.forEach(job => {\n    items.push({\n      json: {\n        job_title: job.jobTitle,\n        company_name: job.companyName,\n        job_location: job.location,\n        job_summary: job.jobSummary,\n        apply_link: job.applyLink,\n        company_url: job.companyUrl,\n        job_employment_type: job.jobType,\n        job_posted_date: job.postedDate,\n        base_salary: job.salaryRange,\n        sourceURL: jobData.sourceURL || '',\n        timestamp: new Date().toISOString()\n      }\n    });\n  });\n}\n\nreturn items;"
+      },
+      "id": "21702e5e-baa7-4c0e-8cf4-6781aac6e62e",
+      "name": "Process Job Data",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1740,
+        20
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk",
+          "cachedResultName": "LinkedIn Jobs"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "Location": "={{ $json.job_location }}",
+            "Job Title": "={{ $json.job_title }}",
+            "Apply Link": "={{ $json.apply_link }}",
+            "Job Detail": "={{ $json.job_summary }}",
+            "Company URL": "={{ $json.company_url }}",
+            "Company Name": "={{ $json.company_name }}",
+            "Job Type": "={{ $json.job_employment_type }}",
+            "Posted Date": "={{ $json.job_posted_date }}",
+            "Salary Range": "={{ $json.base_salary }}",
+            "Source URL": "={{ $json.sourceURL }}",
+            "Timestamp": "={{ $json.timestamp }}"
+          },
+          "schema": [
+            {
+              "id": "Company URL",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Company URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Job Title",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Company Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Location",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Detail",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Job Detail",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Apply Link",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Apply Link",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Type",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Job Type",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted Date",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Posted Date",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Salary Range",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Salary Range",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source URL",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Source URL",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timestamp",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "Timestamp",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9e1bebfc-7e3d-4259-a65e-a78c27ee7a0e",
+      "name": "Update Job Lists in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        2040,
+        20
+      ],
+      "typeVersion": 4.6
+    }
+  ],
+  "connections": {
+    "On form submission1": {
+      "main": [
+        [
+          {
+            "node": "Search Jobs with Firecrawl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Jobs with Firecrawl": {
+      "main": [
+        [
+          {
+            "node": "Check Search Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Search Success": {
+      "main": [
+        [
+          {
+            "node": "Split Job Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Job Results": {
+      "main": [
+        [
+          {
+            "node": "Filter Relevant Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Relevant Jobs": {
+      "main": [
+        [
+          {
+            "node": "Process Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Job Data": {
+      "main": [
+        [
+          {
+            "node": "Update Job Lists in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63d8a0eabddcc8861ee879e7b6bca1ab194f6c0314110f10ad243adf729dca9c"
+  }
+}
