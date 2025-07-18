@@ -1,0 +1,240 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "**Summarize YouTube videos**\n\nThis project automates the summarization of YouTube videos, transforming lengthy content into concise, actionable insights. By leveraging AI and workflow automation, it extracts video transcripts, analyzes key points, and generates summaries, saving time for content creators, researchers, and professionals. Perfect for staying informed, conducting research, or repurposing video content efficiently.",
+        "height": 120,
+        "width": 1160,
+        "color": 7
+      },
+      "id": "903e994a-2dc9-4cca-8c17-817959e3c227",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        320,
+        140
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/topaz_sharingan~youtube-transcript-scraper/run-sync-get-dataset-items?token=apify_api_c05yCqw55CgwyuD2Wq3pHF",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"startUrls\": [\n    \"{{ $json['Full URL'] }}\"\n  ]\n}",
+        "options": {}
+      },
+      "id": "1078cfcc-75d5-4a83-af90-c1c3172c21d2",
+      "name": "Request YouTube Transcript",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "transcript",
+              "value": "={{$json[\"transcript\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d0bc5f78-4173-4f92-912b-195e5c7c612e",
+      "name": "Extract Transcript",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        660,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Summarize YouTube video's",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full URL",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Address",
+              "fieldType": "email",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "path": "youtube-summarizer"
+        }
+      },
+      "id": "9ff9271f-49e9-4450-8799-6adf0c5b410b",
+      "name": "YouTube video URL",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "3dc17600-3020-40b1-be8f-e65ef45269b6"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "7afdde99-5479-4684-a020-5b684f2ae6f5",
+      "name": "Summarization Engine",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        880,
+        580
+      ],
+      "typeVersion": 1.1,
+      "credentials": {
+        "openAiApi": {
+          "id": "IJsHcSaTSGIivpDj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chunkingMode": "advanced",
+        "options": {
+          "summarizationMethodAndPrompts": {
+            "values": {
+              "combineMapPrompt": "Please provide a comprehensive summary of this YouTube video transcript. Structure your response as a JSON object with the following format:\n\n{\n  \"title\": \"Brief descriptive title for the video content\",\n  \"keyPoints\": [\"Key point 1\", \"Key point 2\", \"Key point 3\"],\n  \"summary\": \"Detailed summary of the main content and insights\",\n  \"actionItems\": [\"Action item 1\", \"Action item 2\"],\n  \"tags\": [\"tag1\", \"tag2\", \"tag3\"]\n}"
+            }
+          }
+        }
+      },
+      "id": "2f984b0b-a53e-40d6-a6a8-9315b63e64c1",
+      "name": "Summarization of a YouTube script",
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "position": [
+        880,
+        400
+      ],
+      "typeVersion": 2,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process the summarization output and prepare it for Gmail\nfor (const item of $input.all()) {\n  // Extract the summary from the previous node\n  let summaryData;\n  try {\n    summaryData = JSON.parse(item.json.response || item.json.text || '{}');\n  } catch (e) {\n    summaryData = {\n      title: 'YouTube Video Summary',\n      summary: item.json.response || item.json.text || 'No summary available',\n      keyPoints: [],\n      actionItems: [],\n      tags: []\n    };\n  }\n  \n  // Get the original YouTube URL and email from the form\n  const youtubeUrl = $('YouTube video URL').first().json['Full URL'] || 'URL not available';\n  const emailAddress = $('YouTube video URL').first().json['Email Address'] || '';\n  \n  // Create formatted content\n  const keyPointsHtml = summaryData.keyPoints && summaryData.keyPoints.length > 0 \n    ? `<ul>${summaryData.keyPoints.map(point => `<li>${point}</li>`).join('')}</ul>`\n    : '<p>No key points identified</p>';\n    \n  const actionItemsHtml = summaryData.actionItems && summaryData.actionItems.length > 0\n    ? `<ul>${summaryData.actionItems.map(item => `<li>${item}</li>`).join('')}</ul>`\n    : '<p>No action items identified</p>';\n    \n  const tagsHtml = summaryData.tags && summaryData.tags.length > 0\n    ? summaryData.tags.map(tag => `<span style=\"background-color: #ff0000; color: white; padding: 2px 6px; border-radius: 3px; margin: 2px; font-size: 12px;\">${tag}</span>`).join(' ')\n    : 'No tags';\n  \n  // Create email content\n  const emailSubject = `📺 YouTube Video Summary: ${summaryData.title}`;\n  \n  const emailBody = `\n<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background-color: #ff0000; color: white; padding: 15px; text-align: center; border-radius: 5px; }\n        .content { padding: 20px; background-color: #f9f9f9; border-radius: 5px; margin: 10px 0; }\n        .summary { background-color: white; padding: 15px; border-left: 4px solid #ff0000; margin: 15px 0; border-radius: 3px; }\n        .section { margin: 15px 0; }\n        .footer { text-align: center; padding: 15px; font-size: 12px; color: #666; }\n        .button { display: inline-block; padding: 10px 20px; background-color: #ff0000; color: white; text-decoration: none; border-radius: 5px; }\n        .tags { margin: 10px 0; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h2>🎬 YouTube Video Summary</h2>\n        </div>\n        \n        <div class=\"content\">\n            <h3>📹 ${summaryData.title}</h3>\n            <p><strong>🔗 Original URL:</strong> <a href=\"${youtubeUrl}\" target=\"_blank\">${youtubeUrl}</a></p>\n            \n            <div class=\"summary\">\n                <h4>📋 Summary:</h4>\n                <p>${summaryData.summary}</p>\n            </div>\n            \n            <div class=\"section\">\n                <h4>🎯 Key Points:</h4>\n                ${keyPointsHtml}\n            </div>\n            \n            <div class=\"section\">\n                <h4>✅ Action Items:</h4>\n                ${actionItemsHtml}\n            </div>\n            \n            <div class=\"section\">\n                <h4>🏷️ Tags:</h4>\n                <div class=\"tags\">${tagsHtml}</div>\n            </div>\n            \n            <p style=\"text-align: center; margin-top: 20px;\">\n                <a href=\"${youtubeUrl}\" class=\"button\" target=\"_blank\">Watch Original Video</a>\n            </p>\n        </div>\n        \n        <div class=\"footer\">\n            <p>📧 Generated automatically by YouTube Summarizer | ${new Date().toLocaleString()}</p>\n        </div>\n    </div>\n</body>\n</html>\n  `;\n  \n  // Prepare the data for Gmail node\n  item.json = {\n    to: emailAddress,\n    subject: emailSubject,\n    htmlBody: emailBody,\n    // Keep original data for reference\n    originalSummary: summaryData,\n    youtubeUrl: youtubeUrl\n  };\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        400
+      ],
+      "id": "cc77c086-9c1f-4af2-93eb-9bac9677df99",
+      "name": "Prepare Email Content"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.htmlBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1520,
+        400
+      ],
+      "id": "ed0d370d-d691-4226-837a-b3713f02bf66",
+      "name": "Gmail",
+      "webhookId": "026616ff-2749-4f67-b769-f41ee834754f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kennhvMx4kDmx5L2",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Request YouTube Transcript": {
+      "main": [
+        [
+          {
+            "node": "Extract Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Transcript": {
+      "main": [
+        [
+          {
+            "node": "Summarization of a YouTube script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube video URL": {
+      "main": [
+        [
+          {
+            "node": "Request YouTube Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization Engine": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarization of a YouTube script",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization of a YouTube script": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Content": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "63d8a0eabddcc8861ee879e7b6bca1ab194f6c0314110f10ad243adf729dca9c"
+  }
+}
